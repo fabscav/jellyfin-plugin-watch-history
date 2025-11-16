@@ -1,15 +1,12 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.Audio;
-using MediaBrowser.Controller.Entities.Movies;
-using MediaBrowser.Controller.Entities.Shows;
-using MediaBrowser.Controller.Session;
-using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Querying;
 using Microsoft.AspNetCore.Mvc;
 using WatchHistoryRating.Services;
+using Jellyfin.Data.Enums;
 
 namespace WatchHistoryRating.Api
 {
@@ -18,75 +15,100 @@ namespace WatchHistoryRating.Api
     public class WatchHistoryController : ControllerBase
     {
         private readonly ILibraryManager _libraryManager;
-        private readonly ISessionManager _sessionManager;
+        private readonly IUserDataManager _userDataManager;
+        private readonly IUserManager _userManager;
 
-        public WatchHistoryController(ILibraryManager libraryManager, ISessionManager sessionManager)
+        public WatchHistoryController(ILibraryManager libraryManager, IUserDataManager userDataManager, IUserManager userManager)
         {
             _libraryManager = libraryManager;
-            _sessionManager = sessionManager;
+            _userDataManager = userDataManager;
+            _userManager = userManager;
         }
 
-        // Returns history for the current user if userId omitted.
-        // Supports query params: userId, filter (text), type (Movie|Episode|MusicAlbum), sort (name|date|rating), order (asc|desc)
-        [HttpGet("/WatchHistoryRating/History")]
-        public async Task<IActionResult> GetHistory([FromQuery] string userId = null, [FromQuery] string filter = null, [FromQuery] string type = null, [FromQuery] string sort = null, [FromQuery] string order = null)
+        private class HistoryDto
         {
-            // If userId is not provided, try to use the authenticated user id (if available)
-            if (string.IsNullOrEmpty(userId))
-                userId = User?.Identity?.Name; // may be null in some contexts
+            public string Id { get; set; }
+            public string Name { get; set; }
+            public string Type { get; set; }
+            public DateTime? LastPlayed { get; set; }
+            public int? UserRating { get; set; }
+        }
 
-            // Gather play sessions and played items for the user
-            var sessions = await _sessionManager.GetSessionsAsync().ConfigureAwait(false);
-            var items = sessions.Where(s => s.UserId == userId)
-                .SelectMany(s => s.PlayState?.Items ?? Enumerable.Empty<PlaybackInfo>())
-                .Select(pi => pi.ItemId?.ToString())
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Distinct()
-                .ToList();
-
-            // Fallback: if sessions approach fails, attempt to use library's last played metadata (best-effort)
-            if (!items.Any())
+        [HttpGet("/WatchHistoryRating/History")]
+        public IActionResult GetHistory([FromQuery] string userId = null, [FromQuery] string filter = null, [FromQuery] string type = null, [FromQuery] string sort = null, [FromQuery] string order = null)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
             {
-                var all = _libraryManager.GetAllItems();
-                items = all.Where(i => i.UserData?.LastPlayedDate.HasValue == true && i.UserData.LastPlayedDate.Value != default)
-                           .Where(i => i.UserData?.LastPlayedDate != null && i.UserData?.UserId == userId)
-                           .Select(i => i.Id.ToString())
-                           .Distinct()
-                           .ToList();
+                return Ok(Array.Empty<HistoryDto>());
             }
 
-            var results = items.Select(id => _libraryManager.GetItemById(new Guid(id)))
-                .Where(i => i != null)
-                .Select(i => new {
-                    Id = i.Id.ToString(),
-                    Name = i.Name,
-                    Type = i.GetType().Name,
-                    OfficialRating = i.CommunityRating,
-                    Image = i.GetProviderImageTag(),
-                    LastPlayed = i.UserData?.LastPlayedDate,
-                    UserRating = RatingRepository.Instance.Get(i.UserData?.UserId ?? userId, i.Id.ToString())?.Rating
-                })
-                .ToList();
-
-            // Apply filter
-            if (!string.IsNullOrEmpty(filter))
-                results = results.Where(r => r.Name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-
-            // Apply type filter
-            if (!string.IsNullOrEmpty(type))
-                results = results.Where(r => string.Equals(r.Type, type, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            // Sorting
-            bool asc = string.Equals(order, "asc", StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(order);
-            results = sort switch
+            if (!Guid.TryParse(userId, out var userGuid))
             {
-                "name" => (asc ? results.OrderBy(r => r.Name) : results.OrderByDescending(r => r.Name)).ToList(),
-                "date" => (asc ? results.OrderBy(r => r.LastPlayed) : results.OrderByDescending(r => r.LastPlayed)).ToList(),
-                "rating" => (asc ? results.OrderBy(r => r.UserRating) : results.OrderByDescending(r => r.UserRating)).ToList(),
-                _ => results
+                return BadRequest("Invalid userId");
+            }
+
+            var user = _userManager.GetUserById(userGuid);
+            if (user == null)
+            {
+                return BadRequest("User not found");
+            }
+
+            var query = new InternalItemsQuery(user)
+            {
+                IsPlayed = true,
+                Recursive = true
             };
 
-            return Ok(results);
+            if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<BaseItemKind>(type, true, out var kind))
+            {
+                query.IncludeItemTypes = new[] { kind };
+            }
+
+            var items = _libraryManager.GetItemList(query);
+
+            // Map to DTOs with per-user fields
+            var list = new List<HistoryDto>();
+            foreach (var item in items)
+            {
+                var ud = _userDataManager.GetUserData(user, item);
+                var dto = new HistoryDto
+                {
+                    Id = item.Id.ToString("N"),
+                    Name = item.Name,
+                    Type = item.GetType().Name,
+                    LastPlayed = ud?.LastPlayedDate,
+                    UserRating = RatingRepository.Instance.Get(userId, item.Id.ToString("N"))?.Rating
+                };
+                list.Add(dto);
+            }
+
+            // Additional filtering (client-driven text filter)
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                var f = filter.Trim();
+                list = list.Where(x => x.Name != null && x.Name.Contains(f, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            // Client-side sorting
+            var sortKey = (sort ?? "date").ToLowerInvariant();
+            var desc = string.Equals(order, "desc", StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(order);
+
+            IOrderedEnumerable<HistoryDto> ordered;
+            switch (sortKey)
+            {
+                case "name":
+                    ordered = desc ? list.OrderByDescending(x => x.Name) : list.OrderBy(x => x.Name);
+                    break;
+                case "rating":
+                    ordered = desc ? list.OrderByDescending(x => x.UserRating ?? -1) : list.OrderBy(x => x.UserRating ?? int.MaxValue);
+                    break;
+                case "date":
+                default:
+                    ordered = desc ? list.OrderByDescending(x => x.LastPlayed ?? DateTime.MinValue) : list.OrderBy(x => x.LastPlayed ?? DateTime.MaxValue);
+                    break;
+            }
+
+            return Ok(ordered.ToList());
         }
 
         [HttpPost("/WatchHistoryRating/Rate")]

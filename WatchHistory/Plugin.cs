@@ -3,6 +3,7 @@ using System.IO;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
+using MediaBrowser.Model.Serialization;
 using WatchHistoryRating.Services;
 
 namespace WatchHistoryRating
@@ -14,7 +15,7 @@ namespace WatchHistoryRating
 
         private readonly IApplicationPaths _appPaths;
 
-        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer) : base(applicationPaths, xmlSerializer)
+        public Plugin(IApplicationPaths applicationPaths, MediaBrowser.Model.Serialization.IXmlSerializer xmlSerializer) : base(applicationPaths, xmlSerializer)
         {
             _appPaths = applicationPaths;
             // Initialize the singleton RatingRepository using Jellyfin's data path.
