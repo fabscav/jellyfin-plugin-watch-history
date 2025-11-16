@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <AssemblyName>WatchHistoryRating</AssemblyName>
+    <Authors>YourName</Authors>
+    <PackageId>WatchHistoryRating</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediaBrowser.Common" Version="10.8.0" />
+    <PackageReference Include="MediaBrowser.Model" Version="10.8.0" />
+    <PackageReference Include="MediaBrowser.Controller" Version="10.8.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
+  </ItemGroup>
+
+</Project>

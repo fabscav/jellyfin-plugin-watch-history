@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Watch History + Ratings</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body class="jf-page">
+  <div class="jf-page-header">
+    <h1 class="jf-page-title">Watch History & Ratings</h1>
+    <div class="jf-page-actions">
+      <input id="global-filter" placeholder="Filter by title..." />
+      <select id="type-filter"><option value="">All types</option><option>Movie</option><option>Episode</option><option>MusicAlbum</option></select>
+      <select id="sort-by"><option value="date">Last played</option><option value="name">Name</option><option value="rating">My rating</option></select>
+      <select id="sort-order"><option value="desc">Desc</option><option value="asc">Asc</option></select>
+    </div>
+  </div>
+
+  <div class="jf-tabs" id="user-tabs"></div>
+
+  <div id="history-list" class="jf-grid"></div>
+
+  <script src="index.js"></script>
+</body>
+</html>

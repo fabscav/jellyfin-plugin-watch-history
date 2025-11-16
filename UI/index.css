@@ -1,0 +1,28 @@
+/* Minimal styling that follows Jellyfin's general aesthetic (using simple utility class names) */
+
+body.jf-page {
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  margin: 12px;
+  color: #e6eef8;
+  background: transparent;
+}
+
+.jf-page-header { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.jf-page-title { font-size:20px; margin:0; color:var(--jf-text-color,#e6eef8); }
+.jf-page-actions input, .jf-page-actions select { margin-left:8px; padding:6px 8px; background:var(--jf-card-bg,#1f2a37); border:1px solid #2d3a49; color:var(--jf-text-color,#e6eef8); border-radius:6px; }
+
+.jf-tabs { display:flex; gap:8px; margin:10px 0; flex-wrap:wrap; }
+.jf-tab { padding:6px 10px; background:#25333f; border-radius:8px; cursor:pointer; }
+.jf-tab.active { background:#3a5566; box-shadow:0 2px 8px rgba(0,0,0,0.4); }
+
+.jf-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+.history-card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); padding:12px; border-radius:10px; display:flex; gap:10px; align-items:center; }
+.history-card img { width:84px; height:120px; object-fit:cover; border-radius:6px; }
+
+.item-meta { flex:1; }
+.item-title { font-size:14px; margin:0 0 6px 0; }
+.item-sub { font-size:12px; color:#b6c7d8; margin-bottom:8px; }
+
+.rating-row { display:flex; align-items:center; gap:8px; }
+.rating-input { width:66px; padding:6px; border-radius:6px; background:#111827; color:var(--jf-text-color,#e6eef8); border:1px solid #2d3a49; }
+.save-btn { padding:6px 8px; border-radius:6px; background:#2b9fff; color:white; border:none; cursor:pointer; }
