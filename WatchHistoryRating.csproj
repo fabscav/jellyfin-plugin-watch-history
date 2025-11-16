@@ -9,9 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MediaBrowser.Common" Version="10.8.0" />
-    <PackageReference Include="MediaBrowser.Model" Version="10.8.0" />
-    <PackageReference Include="MediaBrowser.Controller" Version="10.8.0" />
+    <PackageReference Include="Jellyfin.Plugin.Sdk" Version="10.10.7" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
   </ItemGroup>
 
