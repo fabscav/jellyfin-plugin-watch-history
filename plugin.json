@@ -1,0 +1,8 @@
+{
+  "Id": "WatchHistoryRating",
+  "Name": "Watch History + Ratings (Enhanced)",
+  "Description": "Shows watch history, ratings (1-10) with filtering, sorting and per-user tabs.",
+  "AssemblyName": "WatchHistoryRating.dll",
+  "Version": "1.0.0",
+  "TargetFramework": "net6.0"
+}
